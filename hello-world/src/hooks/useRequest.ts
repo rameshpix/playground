@@ -1,40 +1,47 @@
 import { useState, useEffect } from 'react';
 
-export interface FetchOptions extends RequestInit {
-    headers?: Record<string, string>;
+export interface FetchState<T> {
+    data: T | null;
+    error: Error | null;
+    loading: boolean;
 }
 
-export interface ErrorType extends Error {
-    type?: string;
-    message: string;
-}
-
-const useRequest = (url: string, options: FetchOptions) => {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
+function useFetch<T>(url: string, options?: RequestInit): FetchState<T> {
+    const [state, setState] = useState<FetchState<T>>({
+        data: null,
+        error: null,
+        loading: true,
+    });
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
+        let isMounted = true;
 
+        const fetchData = async () => {
+            setState({ data: null, error: null, loading: true });
+            try {
                 const response = await fetch(url, options);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const result = await response.json();
-                setData(result);
-            } catch (error: any) {
-                setError(error);
-            } finally {
-                setLoading(false);
+                const data = await response.json();
+                if (isMounted) {
+                    setState({ data, error: null, loading: false });
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setState({ data: null, error: error as Error, loading: false });
+                }
             }
         };
 
         fetchData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [url, options]);
 
-    return { data, error, loading };
-};
+    return state;
+}
 
-export default useRequest;
+export default useFetch;

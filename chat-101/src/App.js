@@ -12,8 +12,17 @@ function App() {
       setChat((prev) => [...prev, data]);
     });
 
-    // Cleanup on unmount
-    return () => socket.off('receive_message');
+    const handleKeyPress = (event) => {
+      if (event.key === 'L' || event.key === 'l') {
+        console.log('L key pressed');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
   }, []);
 
   const sendMessage = (e) => {
